@@ -2,9 +2,11 @@ import threading
 import model
 import numpy as np
 
-class DataThread(threading.Thread):
+from multiprocessing import Process
+
+class DataThread(Process):
     def __init__(self,game_map,moves,ships,other_ships,dropoffs,other_dropoffs,turn_number,ship):
-        threading.Thread.__init__(self)
+        Process.Thread.__init__(self)
         self.game_map = game_map
         self.moves = moves
         self.ships = ships

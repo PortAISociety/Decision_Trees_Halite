@@ -76,6 +76,7 @@ def parse_replay_file(file_name):
     return list(zip(frames, moves, ships, other_ships, my_dropoffs, them_dropoffs))
 
 from thread import ThreadCreator
+
 threadList = []
 
 def parse_replay_folder(folder_name, max_files=None):
