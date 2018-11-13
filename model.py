@@ -12,6 +12,8 @@ from hlt import positionals
 
 from sklearn import tree
 
+from thread_data import DataThread
+
 class HaliteModel:
     MAX_FILES = 100
     DIRECTION_ORDER = [positionals.Direction.West,
@@ -39,8 +41,8 @@ class HaliteModel:
         else:
             self.model = tree.DecisionTreeClassifier()
 
-    def generate_data(self, path, player_name):
-        game_data = [parse.parse_replay_file(path, player_name)]
+    def process_game_data(self,game_data):
+        #game_data = [parse.parse_replay_file(path, player_name)]
 
         print("Processing Game States")
         game_states = []
@@ -53,52 +55,18 @@ class HaliteModel:
                         game_states.append((game_map, moves, ships, other_ships, dropoffs,
                                             other_dropoffs, turn_number, ship))
 
-        result = []
-        data = []
+        print("Generating Training Data")
+        data, labels = [], []
+        th_list = []
         for game_map, moves, ships, other_ships, dropoffs, other_dropoffs, turn_number, ship in tqdm(game_states):
-            move = "o" if ship.id not in moves else moves[ship.id]
-            result.append(move)
-            move_id = self.MOVE_TO_OUTPUT[move]
-            for rot in range(4):  # do all 4 rotations for each game state
-                pass
+            newThread = DataThread(game_map,moves,ships,other_ships,dropoffs,other_dropoffs,turn_number,ship)
+            th_list.append(newThread)
+            newThread.start()
 
-            data_labels = [ "north_object","east_object","south_object","west_object",
-                    "north_halite","east_halite","south_halite","west_halite",
-                    "complete_percentage"]
-
-#            data.append(ship,
-#                    game_map.normalize(ship.position)
-#                     )
-
-#        return game_states, result
-
-
-#            for rot in range(4):  # do all 4 rotations for each game state
-                #check each side
-
-#               data.append(self.input_for_ship(game_map,
-#                                              ship,
-#                                              [s2.position for s2 in ships.values() if s2.id != ship.id],
-#                                              [s2.position for s2 in other_ships.values()],
-#                                              [d.position for d in dropoffs],
-#                                              [d.position for d in other_dropoffs],
-#                                              turn_number,
-#                                              rotation=rot))
-#               labels.append(np.array(move_id))
-#               move_id = 0 if move_id == 0 else (move_id % 4) + 1
-#       data = np.array(data)
-#       labels = np.array(labels)
-
-
-
-
-
-#       print("Generating Training Data")
-#       data, labels = [], []
-#       for game_map, moves, ships, other_ships, dropoffs, other_dropoffs, turn_number, ship in tqdm(game_states):
 #           move = "o" if ship.id not in moves else moves[ship.id]
 #           # Throw away movements that take us closer to base. We will let logic take care of returning to base
 #           if move is not "o" and (
+#       print("Generating Training Data")
 #                   game_map.calculate_distance(ship.position.directional_offset(self.MOVE_TO_DIRECTION[move]),
 #                                               dropoffs[0].position) <
 #                   game_map.calculate_distance(ship.position, dropoffs[0].position)
@@ -117,53 +85,13 @@ class HaliteModel:
 #                                               rotation=rot))
 #               labels.append(np.array(move_id))
 #               move_id = 0 if move_id == 0 else (move_id % 4) + 1
-#       data = np.array(data)
-#       labels = np.array(labels)
+        for t in th_list:
+            t.join()
+        for t in th_list:
+            data_out , labels_out = t.output()
+            data = data + data_out
+            labels = labels + labels_out
 
-#       print("Number of Datapoints: {}".format(len(data)))
-#       print("Number of Features: {}".format(len(data[0])))
-
-#       return data, labels
-
-#    def train_on_file(self, path, player_name):
-    def process_game_data(self,game_data):
-        #game_data = [parse.parse_replay_file(path, player_name)]
-
-        print("Processing Game States")
-        game_states = []
-        for g in game_data:
-            turn_number = 0
-            for game_map, moves, ships, other_ships, dropoffs, other_dropoffs in g:
-                turn_number += 1
-                for ship in list(ships.values()):
-                    if random.random() < .25:
-                        game_states.append((game_map, moves, ships, other_ships, dropoffs,
-                                            other_dropoffs, turn_number, ship))
-
-        print("Generating Training Data")
-        data, labels = [], []
-        for game_map, moves, ships, other_ships, dropoffs, other_dropoffs, turn_number, ship in tqdm(game_states):
-            move = "o" if ship.id not in moves else moves[ship.id]
-            # Throw away movements that take us closer to base. We will let logic take care of returning to base
-            if move is not "o" and (
-                    game_map.calculate_distance(ship.position.directional_offset(self.MOVE_TO_DIRECTION[move]),
-                                                dropoffs[0].position) <
-                    game_map.calculate_distance(ship.position, dropoffs[0].position)
-            ):
-                continue
-
-            move_id = self.MOVE_TO_OUTPUT[move]
-            for rot in range(4):  # do all 4 rotations for each game state
-                data.append(self.input_for_ship(game_map,
-                                                ship,
-                                                [s2.position for s2 in ships.values() if s2.id != ship.id],
-                                                [s2.position for s2 in other_ships.values()],
-                                                [d.position for d in dropoffs],
-                                                [d.position for d in other_dropoffs],
-                                                turn_number,
-                                                rotation=rot))
-                labels.append(np.array(move_id))
-                move_id = 0 if move_id == 0 else (move_id % 4) + 1
         data = np.array(data)
         labels = np.array(labels)
         print(data.size)
@@ -205,6 +133,7 @@ class HaliteModel:
         # game turn
         percent_done = turn_number / constants.MAX_TURNS
         result.append(percent_done)
+        #print("PERCENTAGE_DONE: {}".format(len(result)))
 
         # Local area stats
         for objs in [my_other_ships, other_ships, my_dropoffs, other_dropoffs]:
@@ -213,12 +142,15 @@ class HaliteModel:
                 objs_directions.append(int(game_map.normalize(ship.position.directional_offset(d)) in objs))
             result += self.rotate_direction_vector(objs_directions, rotation)
 
+        #print("LOCAL: {}".format(len(result)))
+
         # directions to highest halite cells at certain distances
         for distance in range(1, 13):
             max_halite_cell = self.max_halite_within_distance(game_map, ship.position, distance)
             halite_directions = self.generate_direction_vector(game_map, ship.position, max_halite_cell)
             result += self.rotate_direction_vector(halite_directions, rotation)
 
+        #print("HIGHEST HALITE: {}".format(len(result)))
         # directions to closest drop off
         closest_dropoff = my_dropoffs[0]
         for dropoff in my_dropoffs:
@@ -228,16 +160,20 @@ class HaliteModel:
         dropoff_directions = self.generate_direction_vector(game_map, ship.position, closest_dropoff)
         result += self.rotate_direction_vector(dropoff_directions, rotation)
 
+        #print("CLOSEST DROP OFF: {}".format(len(result)))
+
         # local area halite
         local_halite = []
         for d in self.DIRECTION_ORDER:
             local_halite.append(game_map[game_map.normalize(ship.position.directional_offset(d))].halite_amount / 1000)
         result += self.rotate_direction_vector(local_halite, rotation)
+        #print("LOCAL AREA: {}".format(len(result)))
 
         # current cell halite indicators
         for i in range(0, 200, 50):
             result.append(int(game_map[ship.position].halite_amount <= i))
         result.append(game_map[ship.position].halite_amount / 1000)
+        #print("CURRENT CELL: {}".format(len(result)))
         return result
 
     def predict_move(self, ship, game_map, me, other_players, turn_number):
@@ -293,3 +229,7 @@ class HaliteModel:
         for i in range(rotations):
             direction_vector = [direction_vector[-1]] + direction_vector[:-1]
         return direction_vector
+
+
+
+

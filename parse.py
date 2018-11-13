@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import os.path
+from tqdm import tqdm
 import zstd
 
 import hlt
@@ -79,7 +80,7 @@ threadList = []
 
 def parse_replay_folder(folder_name, max_files=None):
     replay_buffer = []
-    for file_name in sorted(os.listdir(folder_name)):
+    for file_name in tqdm(sorted(os.listdir(folder_name))):
         if not file_name.endswith(".hlt"):
             continue
         elif max_files is not None and len(replay_buffer) >= max_files:

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-./halite --width 32 --height 32 "python3 test_bot.py" "python3 test_bot.py"
+./halite --replay-directory "output_replays/" --width 32 --height 32 "python3 dt_bot.py" "python3 dt_bot.py"
