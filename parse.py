@@ -74,6 +74,8 @@ def parse_replay_file(file_name):
         them_dropoffs.append(new_them_dropoffs)
     return list(zip(frames, moves, ships, other_ships, my_dropoffs, them_dropoffs))
 
+from thread import ThreadCreator
+threadList = []
 
 def parse_replay_folder(folder_name, max_files=None):
     replay_buffer = []
@@ -83,7 +85,17 @@ def parse_replay_folder(folder_name, max_files=None):
         elif max_files is not None and len(replay_buffer) >= max_files:
             break
         else:
-            replay_buffer.append(parse_replay_file(os.path.join(folder_name, file_name)))
+            newThread = ThreadCreator(replay_buffer,folder_name,file_name)
+            threadList.append(newThread)
+            threadList[-1].start()
+
+            #replay_buffer.append(parse_replay_file(os.path.join(folder_name, file_name)))
+    print("Thread List: ".format(len(threadList)))
+    for t in threadList:
+        t.join()
+
+    print("Reaplay Length: {}".format(len(replay_buffer)))
+    print("Finished Parsing")
     return replay_buffer
 
 
