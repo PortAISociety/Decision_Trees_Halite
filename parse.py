@@ -75,28 +75,40 @@ def parse_replay_file(file_name):
         them_dropoffs.append(new_them_dropoffs)
     return list(zip(frames, moves, ships, other_ships, my_dropoffs, them_dropoffs))
 
-from thread import ThreadCreator
 
-threadList = []
+
+def process_f(folder_name,file_name):
+   print("Starting Process")
+   parsed_data =  parse_replay_file(os.path.join(folder_name, file_name))
+   print("Exiting Process")
+   return parsed_data
+
+
+from thread import ThreadCreator
+from multiprocessing import Queue
+from multiprocessing import Process
+from multiprocessing import Pool
+
+process_list = []
 
 def parse_replay_folder(folder_name, max_files=None):
     replay_buffer = []
+    result_list = []
+    pool = Pool()
     for file_name in tqdm(sorted(os.listdir(folder_name))):
         if not file_name.endswith(".hlt"):
             continue
         elif max_files is not None and len(replay_buffer) >= max_files:
             break
         else:
-            newThread = ThreadCreator(replay_buffer,folder_name,file_name)
-            threadList.append(newThread)
-            threadList[-1].start()
+            result_list.append(pool.apply_async(process_f, args=(folder_name,file_name)))
 
             #replay_buffer.append(parse_replay_file(os.path.join(folder_name, file_name)))
-    print("Thread List: ".format(len(threadList)))
-    for t in threadList:
-        t.join()
+    print("All process done")
+    replay_buffer = [p.get() for p in result_list]
+    print("queue done")
 
-    print("Reaplay Length: {}".format(len(replay_buffer)))
+    print("Replay Length: {}".format(len(replay_buffer)))
     print("Finished Parsing")
     return replay_buffer
 
