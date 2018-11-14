@@ -6,12 +6,13 @@ from tqdm import tqdm
 import zstd
 
 import hlt
+import config
 
 ARBITRARY_ID = -1
 
 
 def parse_replay_file(file_name):
-    print("Load Replay: " + file_name)
+    #print("Load Replay: " + file_name)
     player_name = get_winner_name(file_name).split(" ")[0]
     with open(file_name, 'rb') as f:
         data = json.loads(zstd.loads(f.read()))
@@ -89,9 +90,10 @@ from multiprocessing import Pool
 process_list = []
 
 def parse_replay_folder(folder_name, max_files=None):
+    print("Parsing folder")
     replay_buffer = []
     result_list = []
-    pool = Pool()
+    pool = Pool(config.CORES)
     for file_name in sorted(os.listdir(folder_name)):
         if not file_name.endswith(".hlt"):
             continue
@@ -101,7 +103,6 @@ def parse_replay_folder(folder_name, max_files=None):
             result_list.append(pool.apply_async(process_f, args=(folder_name,file_name)))
 
             #replay_buffer.append(parse_replay_file(os.path.join(folder_name, file_name)))
-    print("All process done")
     #replay_buffer = [p.get() for p in tqdm(result_list)]
 
     for p in tqdm(result_list):
@@ -109,7 +110,6 @@ def parse_replay_folder(folder_name, max_files=None):
         if o:
             replay_buffer.append(o)
 
-    print("queue done")
 
     print("Replay Length: {}".format(len(replay_buffer)))
     print("Finished Parsing")
@@ -117,7 +117,7 @@ def parse_replay_folder(folder_name, max_files=None):
 
 
 def get_winner_name(file_path):
-    print("Loading:" + file_path)
+    #print("Loading:" + file_path)
     with open(file_path, "rb") as f:
         data = json.loads(zstd.loads(f.read()))
     total_turns = data["game_statistics"]["number_turns"]

@@ -16,6 +16,8 @@ from multiprocessing import Process
 from multiprocessing import Queue
 from multiprocessing import Pool
 
+import config
+
 class HaliteModel:
     MAX_FILES = 100
     DIRECTION_ORDER = [positionals.Direction.West,
@@ -88,7 +90,7 @@ class HaliteModel:
         data, labels = [], []
         process_list = []
         result_list = []
-        pool = Pool()
+        pool = Pool(config.CORES)
         for game_map, moves, ships, other_ships, dropoffs, other_dropoffs, turn_number, ship in tqdm(game_states):
 
             result_list.append( pool.apply_async(self.process_f, args=(game_map,moves,ships,other_ships,
