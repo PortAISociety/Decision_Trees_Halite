@@ -83,11 +83,7 @@ def process_f(folder_name,file_name):
    return parsed_data
 
 
-from multiprocessing import Queue
-from multiprocessing import Process
 from multiprocessing import Pool
-
-process_list = []
 
 def parse_replay_folder(folder_name, max_files=None):
     print("Parsing folder")
@@ -101,9 +97,6 @@ def parse_replay_folder(folder_name, max_files=None):
             break
         else:
             result_list.append(pool.apply_async(process_f, args=(folder_name,file_name)))
-
-            #replay_buffer.append(parse_replay_file(os.path.join(folder_name, file_name)))
-    #replay_buffer = [p.get() for p in tqdm(result_list)]
 
     for p in tqdm(result_list):
         o = p.get()

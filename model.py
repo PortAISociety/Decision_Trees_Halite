@@ -12,8 +12,6 @@ from hlt import positionals
 
 from sklearn import tree
 
-from multiprocessing import Process
-from multiprocessing import Queue
 from multiprocessing import Pool
 
 import config
@@ -88,7 +86,6 @@ class HaliteModel:
 
         print("Generating Training Data")
         data, labels = [], []
-        process_list = []
         result_list = []
         pool = Pool(config.CORES)
         for game_map, moves, ships, other_ships, dropoffs, other_dropoffs, turn_number, ship in tqdm(game_states):
@@ -96,13 +93,6 @@ class HaliteModel:
             result_list.append( pool.apply_async(self.process_f, args=(game_map,moves,ships,other_ships,
                     dropoffs,other_dropoffs, turn_number, ship)))
 
-            #newProcess = Process(target=self.process_f, args=(result_queue, game_map,moves,ships,other_ships,
-            #        dropoffs,other_dropoffs, turn_number, ship))
-
-            #process_list.append(newProcess)
-            #newProcess.start()
-
-        #processed_data = [result_queue.get() for p in process_list]
         o = []
         for p in tqdm(result_list):
             out = p.get()
@@ -135,7 +125,7 @@ class HaliteModel:
         print("Number of Features: {}".format(len(data[0])))
 
         self.train(training_data, training_labels)
-        print("Model Score: {}".format(self.model.score(testing_data,testing_labels)))
+        print("Model Score: {}".format(self.model.score(testing_data,testing_labels)*100))
 
     def train_on_folder(self, folder):
         game_data = parse.parse_replay_folder(folder)
@@ -253,7 +243,3 @@ class HaliteModel:
         for i in range(rotations):
             direction_vector = [direction_vector[-1]] + direction_vector[:-1]
         return direction_vector
-
-
-
-
