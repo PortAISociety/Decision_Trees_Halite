@@ -71,7 +71,6 @@ class HaliteModel:
 
     def process_game_data(self,game_data):
         #game_data = [parse.parse_replay_file(path, player_name)]
-        result_queue = Queue()
 
         print("Processing Game States")
         game_states = []
