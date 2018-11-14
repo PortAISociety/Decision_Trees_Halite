@@ -66,7 +66,6 @@ class HaliteModel:
                                                rotation=rot))
             label_out.append(np.array(move_id))
             move_id = 0 if move_id == 0 else (move_id % 4) + 1
-        print("Exiting Process")
         return [data_out,label_out]
 
 
@@ -103,7 +102,7 @@ class HaliteModel:
 
         #processed_data = [result_queue.get() for p in process_list]
         o = []
-        for p in result_list:
+        for p in tqdm(result_list):
             out = p.get()
             if out:
                 o.append(out)

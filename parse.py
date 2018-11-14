@@ -16,7 +16,7 @@ def parse_replay_file(file_name):
     with open(file_name, 'rb') as f:
         data = json.loads(zstd.loads(f.read()))
 
-    print("Load Basic Information")
+    #print("Load Basic Information")
     player = [p for p in data['players'] if p['name'].split(" ")[0] == player_name][0]
     player_id = int(player['player_id'])
     my_shipyard = hlt.Shipyard(player_id, ARBITRARY_ID,
@@ -27,7 +27,7 @@ def parse_replay_file(file_name):
     width = data['production_map']['width']
     height = data['production_map']['height']
 
-    print("Load Cell Information")
+    #print("Load Cell Information")
     first_cells = []
     for x in range(len(data['production_map']['grid'])):
         row = []
@@ -42,20 +42,20 @@ def parse_replay_file(file_name):
             new_cells[c['y']][c['x']].halite_amount = c['production']
         frames.append(hlt.GameMap(new_cells, width, height))
 
-    print("Load Player Ships")
+    #print("Load Player Ships")
     moves = [{} if str(player_id) not in f['moves'] else {m['id']: m['direction'] for m in f['moves'][str(player_id)] if
                                                           m['type'] == "m"} for f in data['full_frames']]
     ships = [{} if str(player_id) not in f['entities'] else {
         int(sid): hlt.Ship(player_id, int(sid), hlt.Position(ship['x'], ship['y']), ship['energy']) for sid, ship in
         f['entities'][str(player_id)].items()} for f in data['full_frames']]
 
-    print("Load Other Player Ships")
+    #print("Load Other Player Ships")
     other_ships = [
         {int(sid): hlt.Ship(int(pid), int(sid), hlt.Position(ship['x'], ship['y']), ship['energy']) for pid, p in
          f['entities'].items() if
          int(pid) != player_id for sid, ship in p.items()} for f in data['full_frames']]
 
-    print("Load Droppoff Information")
+    #print("Load Droppoff Information")
     first_my_dropoffs = [my_shipyard]
     first_them_dropoffs = other_shipyards
     my_dropoffs = []
@@ -78,13 +78,10 @@ def parse_replay_file(file_name):
 
 
 def process_f(folder_name,file_name):
-   print("Starting Process")
    parsed_data =  parse_replay_file(os.path.join(folder_name, file_name))
-   print("Exiting Process")
    return parsed_data
 
 
-from thread import ThreadCreator
 from multiprocessing import Queue
 from multiprocessing import Process
 from multiprocessing import Pool
@@ -95,7 +92,7 @@ def parse_replay_folder(folder_name, max_files=None):
     replay_buffer = []
     result_list = []
     pool = Pool()
-    for file_name in tqdm(sorted(os.listdir(folder_name))):
+    for file_name in sorted(os.listdir(folder_name)):
         if not file_name.endswith(".hlt"):
             continue
         elif max_files is not None and len(replay_buffer) >= max_files:
@@ -105,7 +102,13 @@ def parse_replay_folder(folder_name, max_files=None):
 
             #replay_buffer.append(parse_replay_file(os.path.join(folder_name, file_name)))
     print("All process done")
-    replay_buffer = [p.get() for p in result_list]
+    #replay_buffer = [p.get() for p in tqdm(result_list)]
+
+    for p in tqdm(result_list):
+        o = p.get()
+        if o:
+            replay_buffer.append(o)
+
     print("queue done")
 
     print("Replay Length: {}".format(len(replay_buffer)))
@@ -125,5 +128,5 @@ def get_winner_name(file_path):
                 rank = {**player_object, **rank}
             if rank["rank"] == 1:
                 winner = rank
-    print("winer:", winner["name"])
+    #print("winer:", winner["name"])
     return winner["name"]
